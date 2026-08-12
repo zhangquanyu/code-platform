@@ -124,6 +124,8 @@ public class OrchestrationAppService {
         entity.setName(cmd.getName());
         entity.setCode(cmd.getCode());
         entity.setDescription(cmd.getDescription());
+        entity.setTxType(cmd.getTxType() != null ? cmd.getTxType() : "LOCAL");
+        entity.setTxTimeout(cmd.getTxTimeout() != null ? cmd.getTxTimeout() : 300);
         entity.setStatus(1);
         entity.setIsDeleted(0);
         orchestrationRepository.save(entity);
@@ -143,6 +145,12 @@ public class OrchestrationAppService {
         if (cmd.getStatus() != null) {
             orch.setStatus(cmd.getStatus());
         }
+        if (cmd.getTxType() != null) {
+            orch.setTxType(cmd.getTxType());
+        }
+        if (cmd.getTxTimeout() != null) {
+            orch.setTxTimeout(cmd.getTxTimeout());
+        }
         orchestrationRepository.save(orch);
 
         // 整体保存：先软删除旧的节点/连线，再写入新的
@@ -158,6 +166,13 @@ public class OrchestrationAppService {
                 node.setNodeName(n.getNodeName());
                 node.setServiceId(n.getServiceId());
                 node.setConfigJson(n.getConfigJson());
+                node.setTxType(n.getTxType() != null ? n.getTxType() : "LOCAL");
+                node.setTxTimeout(n.getTxTimeout() != null ? n.getTxTimeout() : 60);
+                node.setRetryCount(n.getRetryCount() != null ? n.getRetryCount() : 0);
+                node.setRetryInterval(n.getRetryInterval() != null ? n.getRetryInterval() : 1000);
+                node.setExceptionStrategy(n.getExceptionStrategy() != null ? n.getExceptionStrategy() : "INTERRUPT");
+                node.setLoopType(n.getLoopType() != null ? n.getLoopType() : "SERIAL");
+                node.setBranchExpr(n.getBranchExpr());
                 node.setXPos(n.getXPos());
                 node.setYPos(n.getYPos());
                 node.setSortOrder(n.getSortOrder() == null ? 0 : n.getSortOrder());
@@ -256,6 +271,37 @@ public class OrchestrationAppService {
                 List<OrchestrationUpdateCmd.OrchEdgeCmd> outs = outEdges.getOrDefault(n.getNodeKey(), List.of());
                 if (outs.size() < 2) {
                     errors.add("条件判断节点[" + n.getNodeKey() + "]至少需要2条出边，当前" + outs.size() + "条");
+                }
+            }
+        }
+
+        // 5. 事务配置校验
+        for (OrchestrationUpdateCmd.OrchNodeCmd n : nodes) {
+            if (n.getRetryCount() != null && n.getRetryCount() < 0) {
+                errors.add("节点[" + n.getNodeKey() + "]重试次数不能为负数");
+            }
+            if ("DISTRIBUTED".equals(n.getTxType()) && n.getServiceId() == null
+                    && (OrchestrationNode.TYPE_SERVICE.equals(n.getNodeType())
+                            || OrchestrationNode.TYPE_ACTION.equals(n.getNodeType()))) {
+                errors.add("分布式事务节点[" + n.getNodeKey() + "]必须配置服务");
+            }
+        }
+
+        // 6. BRANCH 节点必须配置分支表达式
+        for (OrchestrationUpdateCmd.OrchNodeCmd n : nodes) {
+            if (OrchestrationNode.TYPE_BRANCH.equals(n.getNodeType())) {
+                if (n.getBranchExpr() == null || n.getBranchExpr().isBlank()) {
+                    errors.add("分支节点[" + n.getNodeKey() + "]必须配置分支表达式");
+                }
+            }
+        }
+
+        // 7. LOOP(PARALLEL) 节点必须至少有一个出边
+        for (OrchestrationUpdateCmd.OrchNodeCmd n : nodes) {
+            if (OrchestrationNode.TYPE_LOOP.equals(n.getNodeType()) && "PARALLEL".equals(n.getLoopType())) {
+                List<OrchestrationUpdateCmd.OrchEdgeCmd> outs = outEdges.getOrDefault(n.getNodeKey(), List.of());
+                if (outs.isEmpty()) {
+                    errors.add("并行循环节点[" + n.getNodeKey() + "]必须至少有一个子节点(出边)");
                 }
             }
         }

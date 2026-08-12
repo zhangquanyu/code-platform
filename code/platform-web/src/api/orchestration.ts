@@ -37,6 +37,8 @@ export interface OrchSavePayload {
   name: string
   description?: string
   status?: number
+  txType?: string
+  txTimeout?: number
   inputParams?: unknown[]
   outputParams?: unknown[]
   nodes: Partial<OrchNodeVO>[]

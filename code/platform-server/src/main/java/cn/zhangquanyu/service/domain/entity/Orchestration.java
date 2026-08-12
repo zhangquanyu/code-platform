@@ -34,4 +34,10 @@ public class Orchestration extends BaseEntity {
 
     @Column(name = "status", nullable = false)
     private Integer status = 1;
+
+    @Column(name = "tx_type", length = 20)
+    private String txType = "LOCAL";
+
+    @Column(name = "tx_timeout")
+    private Integer txTimeout = 300;
 }

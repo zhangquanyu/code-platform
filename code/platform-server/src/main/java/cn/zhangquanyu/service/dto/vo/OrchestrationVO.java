@@ -15,6 +15,8 @@ public class OrchestrationVO {
     private String code;
     private String description;
     private Integer status;
+    private String txType;
+    private Integer txTimeout;
     private long nodeCount;
     private long edgeCount;
     private LocalDateTime createTime;

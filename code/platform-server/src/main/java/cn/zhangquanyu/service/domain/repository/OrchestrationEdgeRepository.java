@@ -13,6 +13,6 @@ public interface OrchestrationEdgeRepository extends JpaRepository<Orchestration
     List<OrchestrationEdge> findByOrchestrationIdAndIsDeleted(Long orchestrationId, Integer isDeleted);
 
     @Modifying
-    @Query("update OrchestrationEdge e set e.isDeleted = 1 where e.orchestrationId = :orchestrationId")
+    @Query("update OrchestrationEdge e set e.isDeleted = 1 where e.orchestrationId = :orchestrationId and e.isDeleted = 0")
     int softDeleteByOrchestrationId(@Param("orchestrationId") Long orchestrationId);
 }

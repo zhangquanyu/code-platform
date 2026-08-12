@@ -182,6 +182,8 @@ export interface OrchestrationVO {
   code: string
   description: string | null
   status: 0 | 1
+  txType: string | null
+  txTimeout: number | null
   nodeCount: number
   edgeCount: number
   createTime: string
@@ -195,9 +197,19 @@ export interface OrchNodeVO {
   serviceId: number | null
   serviceName: string | null
   configJson: string | null
+  txType: string | null
+  txTimeout: number | null
+  retryCount: number | null
+  retryInterval: number | null
+  exceptionStrategy: string | null
+  loopType: string | null
+  branchExpr: string | null
   xPos: number | null
   yPos: number | null
   sortOrder: number
+  // 前端辅助字段（不持久化到后端，存在 configJson 中）
+  appId?: number | null
+  msId?: number | null
 }
 
 export interface OrchEdgeVO {

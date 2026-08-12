@@ -16,8 +16,10 @@ public class OrchestrationNode extends BaseEntity {
 
     public static final String TYPE_START = "START";
     public static final String TYPE_SERVICE = "SERVICE";
+    public static final String TYPE_ACTION = "ACTION";
     public static final String TYPE_CONDITION = "CONDITION";
     public static final String TYPE_LOOP = "LOOP";
+    public static final String TYPE_BRANCH = "BRANCH";
     public static final String TYPE_END = "END";
 
     @Id
@@ -44,6 +46,27 @@ public class OrchestrationNode extends BaseEntity {
     @Lob
     @Column(name = "config_json")
     private String configJson;
+
+    @Column(name = "tx_type", length = 20)
+    private String txType = "LOCAL";
+
+    @Column(name = "tx_timeout")
+    private Integer txTimeout = 60;
+
+    @Column(name = "retry_count")
+    private Integer retryCount = 0;
+
+    @Column(name = "retry_interval")
+    private Integer retryInterval = 1000;
+
+    @Column(name = "exception_strategy", length = 20)
+    private String exceptionStrategy = "INTERRUPT";
+
+    @Column(name = "loop_type", length = 20)
+    private String loopType = "SERIAL";
+
+    @Column(name = "branch_expr", length = 1024)
+    private String branchExpr;
 
     @Column(name = "x_pos")
     private Integer xPos;

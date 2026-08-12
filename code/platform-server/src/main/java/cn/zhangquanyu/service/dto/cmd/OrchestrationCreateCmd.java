@@ -22,4 +22,8 @@ public class OrchestrationCreateCmd {
 
     @Size(max = 1024)
     private String description;
+
+    private String txType = "LOCAL";
+
+    private Integer txTimeout = 300;
 }
