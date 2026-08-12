@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+logging:
+  level:
+    cn.zhangquanyu: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework: WARN
+    org.springframework.web: INFO
+  file:
+    name: /var/log/code-platform/app.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 10GB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: loggers
+  endpoint:
+    loggers:
+      enabled: true
