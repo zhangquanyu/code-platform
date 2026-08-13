@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
@@ -127,6 +127,21 @@ async function load() {
     try {
       applications.value = await listSimpleApplications()
     } catch { applications.value = [] }
+
+    // 检查节点位置是否需要自动排版（仅当所有节点位置都为 null/undefined 时才触发）
+    // 注意：不能用 !n.xPos，因为 xPos=0 时也会判定为需要排版
+    const needAutoLayout = nodes.value.length > 0 && nodes.value.every(n => n.xPos == null && n.yPos == null)
+    if (needAutoLayout) {
+      // 等待画布初始化完成后执行自动排版
+      await nextTick()
+      setTimeout(() => {
+        canvasRef.value?.autoLayout?.()
+        // 排版后保存新位置
+        setTimeout(() => {
+          canvasRef.value?.forceSyncNow?.()
+        }, 500)
+      }, 300)
+    }
   } finally { loading.value = false }
 }
 
@@ -175,8 +190,9 @@ function buildPayload(): OrchSavePayload {
 }
 
 async function onSave() {
-  // 先同步画布数据
-  canvasRef.value?.syncToProps()
+  // 强制同步画布位置数据到 nodes/edges
+  canvasRef.value?.forceSyncNow?.()
+  await nextTick()
   saving.value = true
   try {
     await updateOrchestration(orchId, buildPayload())
@@ -189,7 +205,8 @@ async function onSave() {
 }
 
 async function onValidate() {
-  canvasRef.value?.syncToProps()
+  canvasRef.value?.forceSyncNow?.()
+  await nextTick()
   validating.value = true
   try {
     const errors = await validateOrchestration(orchId, buildPayload())

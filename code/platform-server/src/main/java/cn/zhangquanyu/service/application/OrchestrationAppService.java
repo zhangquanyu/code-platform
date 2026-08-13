@@ -139,6 +139,10 @@ public class OrchestrationAppService {
                 id, cmd.getName(),
                 cmd.getNodes() == null ? 0 : cmd.getNodes().size(),
                 cmd.getEdges() == null ? 0 : cmd.getEdges().size());
+
+        // 先校验，避免校验失败导致保存后的数据回滚
+        validate(id, cmd.getNodes(), cmd.getEdges());
+
         Orchestration orch = findOrThrow(id);
         orch.setName(cmd.getName());
         orch.setDescription(cmd.getDescription());
@@ -153,7 +157,10 @@ public class OrchestrationAppService {
         }
         orchestrationRepository.save(orch);
 
-        // 整体保存：先软删除旧的节点/连线，再写入新的
+        // 整体保存：先物理删除旧的软删除记录，再软删除当前活跃记录，最后写入新的
+        // 避免唯一约束冲突：(orchestration_id, node_key, is_deleted) 重复
+        nodeRepository.hardDeleteSoftDeletedByOrchestrationId(id);
+        edgeRepository.hardDeleteSoftDeletedByOrchestrationId(id);
         nodeRepository.softDeleteByOrchestrationId(id);
         edgeRepository.softDeleteByOrchestrationId(id);
 
@@ -177,6 +184,8 @@ public class OrchestrationAppService {
                 node.setYPos(n.getYPos());
                 node.setSortOrder(n.getSortOrder() == null ? 0 : n.getSortOrder());
                 node.setIsDeleted(0);
+                log.info("[编排] 保存节点: key={}, type={}, xPos={}, yPos={}",
+                        n.getNodeKey(), n.getNodeType(), n.getXPos(), n.getYPos());
                 nodeRepository.save(node);
             }
         }
@@ -198,8 +207,6 @@ public class OrchestrationAppService {
                 cmd.getNodes() == null ? 0 : cmd.getNodes().size(),
                 cmd.getEdges() == null ? 0 : cmd.getEdges().size());
 
-        // 保存即校验
-        validate(id, cmd.getNodes(), cmd.getEdges());
         log.info("[编排] 更新完成: id={}", id);
         return getById(id);
     }
@@ -316,6 +323,9 @@ public class OrchestrationAppService {
     public void delete(Long id) {
         log.info("[编排] 删除开始: id={}", id);
         findOrThrow(id);
+        // 先物理删除旧的软删除记录，避免唯一约束冲突
+        nodeRepository.hardDeleteSoftDeletedByOrchestrationId(id);
+        edgeRepository.hardDeleteSoftDeletedByOrchestrationId(id);
         nodeRepository.softDeleteByOrchestrationId(id);
         log.debug("[编排] 节点软删除完成: orchestrationId={}", id);
         edgeRepository.softDeleteByOrchestrationId(id);

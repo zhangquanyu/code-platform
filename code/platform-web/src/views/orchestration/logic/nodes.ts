@@ -123,6 +123,8 @@ function createDiamondNode(type: string, color: string) {
     initNodeData(data: any) {
       super.initNodeData(data)
       this.size = NODE_H + 10
+      this.rx = this.size / 2
+      this.ry = this.size / 2
     }
     getNodeStyle() {
       const s = super.getNodeStyle()

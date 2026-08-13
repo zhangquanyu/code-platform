@@ -1,8 +1,11 @@
 package cn.zhangquanyu.service.dto.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public class OrchNodeVO {
 
     private Long id;
@@ -19,7 +22,9 @@ public class OrchNodeVO {
     private String exceptionStrategy;
     private String loopType;
     private String branchExpr;
+    @JsonProperty("xPos")
     private Integer xPos;
+    @JsonProperty("yPos")
     private Integer yPos;
     private Integer sortOrder;
 }

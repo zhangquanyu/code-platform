@@ -10,10 +10,13 @@
       <el-button size="small" @click="autoLayout" :disabled="!hasNodes">
         <el-icon><Grid /></el-icon> 自动排版
       </el-button>
+      <el-button size="small" :type="selectionMode ? 'primary' : ''" @click="toggleSelection">
+        <el-icon><Select /></el-icon> {{ selectionMode ? '关闭选区' : '开启选区' }}
+      </el-button>
       <span class="zoom-label">{{ zoomPct }}%</span>
       <div class="toolbar-right">
-        <el-button size="small" @click="clearSelection" :disabled="!selectedId">取消选中</el-button>
-        <el-button size="small" type="danger" @click="deleteSelected" :disabled="!selectedId">删除</el-button>
+        <el-button size="small" @click="clearSelection" :disabled="selectedIds.length === 0">取消选中</el-button>
+        <el-button size="small" type="danger" @click="deleteSelected" :disabled="selectedIds.length === 0">删除</el-button>
       </div>
     </div>
 
@@ -32,14 +35,17 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { ZoomIn, ZoomOut, FullScreen, RefreshLeft, Grid } from '@element-plus/icons-vue'
+import { ZoomIn, ZoomOut, FullScreen, RefreshLeft, Grid, Select } from '@element-plus/icons-vue'
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/index.css'
+import { SelectionSelect } from '@logicflow/extension'
+import '@logicflow/extension/lib/style/index.css'
 import { Dagre } from '@logicflow/layout'
 import { registerOrchNodes, typeToLf, lfToType, typeLabels } from '../logic/nodes'
 import type { OrchNodeVO, OrchEdgeVO } from '@/types'
 
 LogicFlow.use(Dagre)
+LogicFlow.use(SelectionSelect)
 
 const props = defineProps<{
   nodes: OrchNodeVO[]
@@ -60,7 +66,8 @@ const containerRef = ref<HTMLElement | null>(null)
 let lf: LogicFlow | null = null
 
 const zoomPct = ref(100)
-const selectedId = ref<string | null>(null)
+const selectedIds = ref<string[]>([])
+const selectionMode = ref(false)
 const hasNodes = ref(false)
 
 // 内部数据副本，用于双向同步
@@ -119,7 +126,9 @@ function renderGraph() {
 
 // --- 数据同步：LogicFlow → props ---
 function syncToProps(immediate = false) {
-  if (isSyncingDown) return
+  // immediate=true 时强制同步，绕过 isSyncingDown 守卫
+  // 否则保存时如果画布正在渲染(isSyncingDown=true)，位置数据会丢失
+  if (!immediate && isSyncingDown) return
   if (syncTimer && !immediate) return // 已有防抖等待
   const doSync = () => {
     if (!lf) return
@@ -221,7 +230,7 @@ function onDrop(e: DragEvent) {
     text: typeLabels[orchType] || orchType,
     properties: { _orchType: orchType }
   })
-  selectedId.value = nodeKey
+  selectedIds.value = [nodeKey]
   // 用 rAF 确保 LogicFlow 内部处理完 addNode 后再同步
   requestAnimationFrame(() => {
     forceSyncNow()
@@ -250,10 +259,10 @@ function autoLayout() {
   try {
     const dagreExt = (lf as any).extension?.dagre
     if (dagreExt) {
-      // Dagre 参数：rankdir=LR 从左到右；ranker=network-simplex 最少连线交叉
+      // Dagre 参数：rankdir=TB 从上到下；ranker=network-simplex 最少连线交叉
       dagreExt.layout({
-        rankdir: 'LR',
-        align: 'UL',
+        rankdir: 'TB',
+        align: 'DL',
         ranker: 'network-simplex',
         nodesep: 50,       // 同层相邻节点距离
         ranksep: 90,       // 相邻层间距
@@ -348,34 +357,46 @@ function manualLayout() {
     return (typeOrder[na.nodeType] ?? 3) - (typeOrder[nb.nodeType] ?? 3)
   }))
 
-  // O(N) 放置节点，居中对齐每层
-  const NODE_GAP_Y = 110
-  const LAYER_GAP_X = 220
+  // O(N) 放置节点：垂直布局，各层从上到下排列，同层节点水平排列
+  const NODE_GAP_X = 80    // 同层节点水平间距
+  const LAYER_GAP_Y = 120  // 相邻层垂直间距
   layers.forEach((keys, idx) => {
-    const totalH = keys.length * NODE_H + (keys.length - 1) * (NODE_GAP_Y - NODE_H)
-    const startY = Math.max(80, 200 - totalH / 2)
+    const totalW = keys.length * NODE_W + (keys.length - 1) * (NODE_GAP_X - NODE_W)
+    const startX = Math.max(80, 400 - totalW / 2)
     keys.forEach((key, ni) => {
-      lf!.setNodePosition(key, 80 + idx * LAYER_GAP_X + NODE_W / 2, startY + ni * NODE_GAP_Y + NODE_H / 2)
+      lf!.setNodePosition(key, startX + ni * NODE_GAP_X + NODE_W / 2, 80 + idx * LAYER_GAP_Y + NODE_H / 2)
     })
   })
 }
 
 function clearSelection() {
-  selectedId.value = null
+  selectedIds.value = []
   lf?.clearSelectElements()
   emit('select-node', null)
   emit('select-edge', null)
 }
 
-function deleteSelected() {
-  if (!lf || !selectedId.value) return
-  const id = selectedId.value
-  if (nodeMap.has(id)) {
-    lf.deleteNode(id)
-  } else if (edgeMap.has(id)) {
-    lf.deleteEdge(id)
+function toggleSelection() {
+  if (!lf) return
+  if (selectionMode.value) {
+    lf.closeSelectionSelect()
+    selectionMode.value = false
+  } else {
+    lf.openSelectionSelect()
+    selectionMode.value = true
   }
-  selectedId.value = null
+}
+
+function deleteSelected() {
+  if (!lf || selectedIds.value.length === 0) return
+  for (const id of selectedIds.value) {
+    if (nodeMap.has(id)) {
+      lf.deleteNode(id)
+    } else if (edgeMap.has(id)) {
+      lf.deleteEdge(id)
+    }
+  }
+  selectedIds.value = []
   forceSyncNow()
   emit('select-node', null)
   emit('select-edge', null)
@@ -391,23 +412,46 @@ function initLogicFlow() {
     background: { color: '#fafafa' },
     keyboard: { enabled: true },
     edgeType: 'polyline',
-    style: { outline: { stroke: '#409eff', strokeDasharray: '4 4' } }
+    style: { outline: { stroke: '#409eff', strokeDasharray: '4 4' } },
+    anchor: {
+      radius: 4,
+      offset: 0,
+      style: { fill: '#fff', stroke: '#c0c4cc', strokeWidth: 1 }
+    }
   })
 
   registerOrchNodes(lf)
 
   // 选中事件
   lf.on('node:click', ({ data }: any) => {
-    selectedId.value = data.id
+    selectedIds.value = [data.id]
     emit('select-node', nodeMap.get(data.id) || null)
     emit('select-edge', null)
   })
   lf.on('edge:click', ({ data }: any) => {
-    selectedId.value = data.id
+    selectedIds.value = [data.id]
     emit('select-edge', edgeMap.get(data.id) || null)
     emit('select-node', null)
   })
   lf.on('blank:click', () => clearSelection())
+
+  // 框选事件：多选时更新选中列表
+  lf.on('selection:selected', ({ nodes, edges }: any) => {
+    const ids: string[] = []
+    ;(nodes || []).forEach((n: any) => ids.push(n.id || n))
+    ;(edges || []).forEach((e: any) => ids.push(e.id || e))
+    selectedIds.value = ids
+    if (nodes && nodes.length === 1 && !edges) {
+      emit('select-node', nodeMap.get(nodes[0].id) || null)
+      emit('select-edge', null)
+    } else if (edges && edges.length === 1 && !nodes) {
+      emit('select-edge', edgeMap.get(edges[0].id) || null)
+      emit('select-node', null)
+    } else {
+      emit('select-node', null)
+      emit('select-edge', null)
+    }
+  })
 
   // 节点/连线拖拽后同步位置（防抖 150ms）
   lf.on('node:drag-end', () => forceSyncNow())
@@ -458,7 +502,7 @@ onBeforeUnmount(() => {
 })
 
 // 暴露方法给父组件
-defineExpose({ syncToProps: forceSyncNow, autoLayout })
+defineExpose({ syncToProps: forceSyncNow, forceSyncNow, autoLayout })
 </script>
 
 <style scoped>

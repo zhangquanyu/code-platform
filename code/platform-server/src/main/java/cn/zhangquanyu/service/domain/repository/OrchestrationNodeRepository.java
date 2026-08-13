@@ -20,4 +20,8 @@ public interface OrchestrationNodeRepository extends JpaRepository<Orchestration
     @Modifying
     @Query("update OrchestrationNode n set n.isDeleted = 1 where n.orchestrationId = :orchestrationId and n.isDeleted = 0")
     int softDeleteByOrchestrationId(@Param("orchestrationId") Long orchestrationId);
+
+    @Modifying
+    @Query("delete from OrchestrationNode n where n.orchestrationId = :orchestrationId and n.isDeleted = 1")
+    int hardDeleteSoftDeletedByOrchestrationId(@Param("orchestrationId") Long orchestrationId);
 }
