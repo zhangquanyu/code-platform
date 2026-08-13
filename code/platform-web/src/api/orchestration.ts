@@ -1,9 +1,20 @@
 import request from '@/utils/request'
 import type {
   OrchestrationVO, OrchestrationDetailVO, OrchHealthVO,
-  OrchNodeVO, OrchEdgeVO
+  OrchNodeVO, OrchEdgeVO, OrchParamVO
 } from '@/types'
 import type { PageResult } from '@/utils/request'
+
+/** 编排参数保存命令 */
+export interface OrchParamCmd {
+  id?: number | null
+  paramName: string
+  dataType: string
+  isRequired?: number
+  paramComment?: string
+  sourceNodeKey?: string | null
+  sourceField?: string | null
+}
 
 export interface OrchPageQuery {
   pageNum?: number
@@ -39,8 +50,8 @@ export interface OrchSavePayload {
   status?: number
   txType?: string
   txTimeout?: number
-  inputParams?: unknown[]
-  outputParams?: unknown[]
+  inputParams?: OrchParamCmd[]
+  outputParams?: OrchParamCmd[]
   nodes: Partial<OrchNodeVO>[]
   edges: Partial<OrchEdgeVO>[]
 }

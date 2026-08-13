@@ -6,11 +6,15 @@ import cn.zhangquanyu.service.converter.OrchestrationConverter;
 import cn.zhangquanyu.service.domain.entity.Orchestration;
 import cn.zhangquanyu.service.domain.entity.OrchestrationEdge;
 import cn.zhangquanyu.service.domain.entity.OrchestrationNode;
+import cn.zhangquanyu.service.domain.entity.OrchestrationParam;
 import cn.zhangquanyu.service.domain.entity.ServiceDef;
+import cn.zhangquanyu.service.domain.entity.ServiceParam;
 import cn.zhangquanyu.service.domain.repository.OrchestrationEdgeRepository;
 import cn.zhangquanyu.service.domain.repository.OrchestrationNodeRepository;
+import cn.zhangquanyu.service.domain.repository.OrchestrationParamRepository;
 import cn.zhangquanyu.service.domain.repository.OrchestrationRepository;
 import cn.zhangquanyu.service.domain.repository.ServiceDefRepository;
+import cn.zhangquanyu.service.domain.repository.ServiceParamRepository;
 import cn.zhangquanyu.service.dto.cmd.OrchDebugCmd;
 import cn.zhangquanyu.service.dto.cmd.OrchestrationCreateCmd;
 import cn.zhangquanyu.service.dto.cmd.OrchestrationUpdateCmd;
@@ -22,6 +26,7 @@ import cn.zhangquanyu.service.dto.vo.OrchNodeVO;
 import cn.zhangquanyu.service.dto.vo.OrchParamVO;
 import cn.zhangquanyu.service.dto.vo.OrchestrationDetailVO;
 import cn.zhangquanyu.service.dto.vo.OrchestrationVO;
+import cn.zhangquanyu.service.dto.vo.ServiceParamVO;
 import cn.zhangquanyu.shared.api.PageResult;
 import cn.zhangquanyu.shared.api.StatusCmd;
 import cn.zhangquanyu.shared.exception.BusinessException;
@@ -53,8 +58,10 @@ public class OrchestrationAppService {
     private final OrchestrationRepository orchestrationRepository;
     private final OrchestrationNodeRepository nodeRepository;
     private final OrchestrationEdgeRepository edgeRepository;
+    private final OrchestrationParamRepository paramRepository;
     private final MicroserviceRepository microserviceRepository;
     private final ServiceDefRepository serviceDefRepository;
+    private final ServiceParamRepository serviceParamRepository;
     private final OrchestrationConverter converter;
     private final ObjectMapper objectMapper;
 
@@ -99,11 +106,13 @@ public class OrchestrationAppService {
         List<OrchestrationEdge> edges = edgeRepository.findByOrchestrationIdAndIsDeleted(id, 0);
 
         List<OrchNodeVO> nodeVOs = fillServiceNames(converter.toNodeVOList(nodes));
+        // 为 SERVICE/ACTION 节点填充服务入参/出参定义
+        fillServiceParams(nodeVOs);
         detail.setNodes(nodeVOs);
         detail.setEdges(converter.toEdgeVOList(edges));
-        // 入参/出参：本期简化为从编排实体的扩展字段获取；这里返回空列表占位
-        detail.setInputParams(List.of());
-        detail.setOutputParams(List.of());
+        // 加载编排级入参/出参
+        detail.setInputParams(loadParams(id, OrchestrationParam.SCOPE_INPUT));
+        detail.setOutputParams(loadParams(id, OrchestrationParam.SCOPE_OUTPUT));
         log.info("[编排] 查询详情成功: id={}, name={}, code={}, nodes={}, edges={}",
                 id, orch.getName(), orch.getCode(), nodeVOs.size(), detail.getEdges().size());
         return detail;
@@ -161,8 +170,10 @@ public class OrchestrationAppService {
         // 避免唯一约束冲突：(orchestration_id, node_key, is_deleted) 重复
         nodeRepository.hardDeleteSoftDeletedByOrchestrationId(id);
         edgeRepository.hardDeleteSoftDeletedByOrchestrationId(id);
+        paramRepository.hardDeleteSoftDeletedByOrchestrationId(id);
         nodeRepository.softDeleteByOrchestrationId(id);
         edgeRepository.softDeleteByOrchestrationId(id);
+        paramRepository.softDeleteByOrchestrationId(id);
 
         if (cmd.getNodes() != null) {
             for (OrchestrationUpdateCmd.OrchNodeCmd n : cmd.getNodes()) {
@@ -206,6 +217,10 @@ public class OrchestrationAppService {
                 id,
                 cmd.getNodes() == null ? 0 : cmd.getNodes().size(),
                 cmd.getEdges() == null ? 0 : cmd.getEdges().size());
+
+        // 保存编排级入参/出参
+        saveParams(id, OrchestrationParam.SCOPE_INPUT, cmd.getInputParams());
+        saveParams(id, OrchestrationParam.SCOPE_OUTPUT, cmd.getOutputParams());
 
         log.info("[编排] 更新完成: id={}", id);
         return getById(id);
@@ -326,10 +341,13 @@ public class OrchestrationAppService {
         // 先物理删除旧的软删除记录，避免唯一约束冲突
         nodeRepository.hardDeleteSoftDeletedByOrchestrationId(id);
         edgeRepository.hardDeleteSoftDeletedByOrchestrationId(id);
+        paramRepository.hardDeleteSoftDeletedByOrchestrationId(id);
         nodeRepository.softDeleteByOrchestrationId(id);
         log.debug("[编排] 节点软删除完成: orchestrationId={}", id);
         edgeRepository.softDeleteByOrchestrationId(id);
         log.debug("[编排] 连线软删除完成: orchestrationId={}", id);
+        paramRepository.softDeleteByOrchestrationId(id);
+        log.debug("[编排] 参数软删除完成: orchestrationId={}", id);
         orchestrationRepository.softDelete(id);
         log.info("[编排] 删除成功(软删除): id={}", id);
     }
@@ -516,6 +534,98 @@ public class OrchestrationAppService {
             }
         });
         return nodes;
+    }
+
+    /**
+     * 为 SERVICE/ACTION 节点填充服务入参/出参定义
+     */
+    private void fillServiceParams(List<OrchNodeVO> nodes) {
+        Set<Long> svcIds = nodes.stream()
+                .filter(n -> OrchestrationNode.TYPE_SERVICE.equals(n.getNodeType())
+                        || OrchestrationNode.TYPE_ACTION.equals(n.getNodeType()))
+                .map(OrchNodeVO::getServiceId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (svcIds.isEmpty()) {
+            return;
+        }
+        // 查询所有相关服务的入参和出参
+        List<ServiceParam> allParams = svcIds.stream()
+                .flatMap(sid -> serviceParamRepository
+                        .findByServiceIdAndIsDeletedOrderBySortOrderAsc(sid, 0).stream())
+                .toList();
+        Map<Long, List<ServiceParam>> paramMap = allParams.stream()
+                .collect(Collectors.groupingBy(ServiceParam::getServiceId));
+        nodes.forEach(n -> {
+            if (n.getServiceId() != null && paramMap.containsKey(n.getServiceId())) {
+                List<ServiceParam> params = paramMap.get(n.getServiceId());
+                n.setServiceInputs(toSvcParamVOList(params, ServiceParam.TYPE_INPUT));
+                n.setServiceOutputs(toSvcParamVOList(params, ServiceParam.TYPE_OUTPUT));
+            }
+        });
+    }
+
+    private List<ServiceParamVO> toSvcParamVOList(List<ServiceParam> params, int paramType) {
+        return params.stream()
+                .filter(p -> p.getParamType() == paramType)
+                .map(p -> {
+                    ServiceParamVO vo = new ServiceParamVO();
+                    vo.setId(p.getId());
+                    vo.setServiceId(p.getServiceId());
+                    vo.setParamType(p.getParamType());
+                    vo.setParamName(p.getParamName());
+                    vo.setDataType(p.getDataType());
+                    vo.setIsRequired(p.getIsRequired());
+                    vo.setDefaultValue(p.getDefaultValue());
+                    vo.setModelFieldId(p.getModelFieldId());
+                    vo.setSortOrder(p.getSortOrder());
+                    vo.setParamComment(p.getParamComment());
+                    return vo;
+                }).toList();
+    }
+
+    /**
+     * 加载编排级入参/出参
+     */
+    private List<OrchParamVO> loadParams(Long orchId, String scope) {
+        List<OrchestrationParam> params = paramRepository
+                .findByOrchestrationIdAndParamScopeAndIsDeletedOrderBySortOrderAsc(orchId, scope, 0);
+        return params.stream().map(p -> {
+            OrchParamVO vo = new OrchParamVO();
+            vo.setId(p.getId());
+            vo.setParamName(p.getParamName());
+            vo.setDataType(p.getDataType());
+            vo.setIsRequired(p.getIsRequired());
+            vo.setParamComment(p.getParamComment());
+            vo.setSourceNodeKey(p.getSourceNodeKey());
+            vo.setSourceField(p.getSourceField());
+            return vo;
+        }).toList();
+    }
+
+    /**
+     * 保存编排级入参/出参
+     */
+    private void saveParams(Long orchId, String scope, List<OrchestrationUpdateCmd.OrchParamCmd> params) {
+        if (params == null || params.isEmpty()) {
+            return;
+        }
+        int order = 0;
+        for (OrchestrationUpdateCmd.OrchParamCmd p : params) {
+            OrchestrationParam param = new OrchestrationParam();
+            param.setOrchestrationId(orchId);
+            param.setParamScope(scope);
+            param.setParamName(p.getParamName());
+            param.setDataType(p.getDataType());
+            param.setIsRequired(p.getIsRequired() != null ? p.getIsRequired() : 1);
+            param.setParamComment(p.getParamComment());
+            param.setSourceNodeKey(p.getSourceNodeKey());
+            param.setSourceField(p.getSourceField());
+            param.setSortOrder(order++);
+            param.setIsDeleted(0);
+            paramRepository.save(param);
+        }
+        log.info("[编排] 参数保存完成: id={}, scope={}, count={}", orchId, scope, params.size());
     }
 
     private Orchestration findOrThrow(Long id) {

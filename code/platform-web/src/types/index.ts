@@ -207,6 +207,10 @@ export interface OrchNodeVO {
   xPos: number | null
   yPos: number | null
   sortOrder: number
+  /** 服务节点入参定义（后端填充） */
+  serviceInputs?: ServiceParamVO[]
+  /** 服务节点出参定义（后端填充） */
+  serviceOutputs?: ServiceParamVO[]
   // 前端辅助字段（不持久化到后端，存在 configJson 中）
   appId?: number | null
   msId?: number | null
@@ -221,10 +225,20 @@ export interface OrchEdgeVO {
   labelText: string | null
 }
 
+export interface OrchParamVO {
+  id: number | null
+  paramName: string
+  dataType: string
+  isRequired: number
+  paramComment: string | null
+  sourceNodeKey: string | null
+  sourceField: string | null
+}
+
 export interface OrchestrationDetailVO {
   orchestration: OrchestrationVO
-  inputParams: unknown[]
-  outputParams: unknown[]
+  inputParams: OrchParamVO[]
+  outputParams: OrchParamVO[]
   nodes: OrchNodeVO[]
   edges: OrchEdgeVO[]
 }

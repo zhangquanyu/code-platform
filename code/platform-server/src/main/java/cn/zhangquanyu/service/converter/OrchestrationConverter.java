@@ -21,6 +21,8 @@ public interface OrchestrationConverter {
     OrchestrationVO toVO(Orchestration entity);
 
     @Mapping(target = "serviceName", ignore = true)
+    @Mapping(target = "serviceInputs", ignore = true)
+    @Mapping(target = "serviceOutputs", ignore = true)
     OrchNodeVO toNodeVO(OrchestrationNode entity);
 
     List<OrchNodeVO> toNodeVOList(List<OrchestrationNode> entities);

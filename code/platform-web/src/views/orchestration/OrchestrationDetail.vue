@@ -42,9 +42,14 @@
           :selected-node="selectedNode"
           :selected-edge="selectedEdge"
           :applications="applications"
+          :input-params="inputParams"
+          :output-params="outputParams"
+          :all-nodes="nodes"
           @update-orch="onUpdateOrch"
           @update-node="onUpdateNode"
           @update-edge="onUpdateEdge"
+          @update-input-params="(p: OrchParamVO[]) => inputParams = p"
+          @update-output-params="(p: OrchParamVO[]) => outputParams = p"
         />
       </div>
     </div>
@@ -77,10 +82,10 @@ import OrchCanvas from './components/OrchCanvas.vue'
 import OrchPropertyPanel from './components/OrchPropertyPanel.vue'
 import {
   getOrchestration, updateOrchestration, validateOrchestration,
-  debugOrchestration, type OrchSavePayload
+  debugOrchestration, type OrchSavePayload, type OrchParamCmd
 } from '@/api/orchestration'
 import { listSimpleApplications } from '@/api/application'
-import type { OrchNodeVO, OrchEdgeVO, OrchestrationDetailVO, ApplicationSimpleVO } from '@/types'
+import type { OrchNodeVO, OrchEdgeVO, OrchestrationDetailVO, ApplicationSimpleVO, OrchParamVO } from '@/types'
 
 const route = useRoute()
 const orchId = Number(route.params.id)
@@ -98,6 +103,8 @@ const canvasRef = ref<InstanceType<typeof OrchCanvas>>()
 const orchData = ref<OrchestrationDetailVO | null>(null)
 const nodes = ref<OrchNodeVO[]>([])
 const edges = ref<OrchEdgeVO[]>([])
+const inputParams = ref<OrchParamVO[]>([])
+const outputParams = ref<OrchParamVO[]>([])
 const applications = ref<ApplicationSimpleVO[]>([])
 
 const orchForm = reactive({
@@ -122,6 +129,8 @@ async function load() {
     orchForm.description = orch.description || ''
     nodes.value = data.nodes || []
     edges.value = data.edges || []
+    inputParams.value = data.inputParams || []
+    outputParams.value = data.outputParams || []
 
     // 加载应用列表（供节点属性面板跨应用选择服务）
     try {
@@ -182,8 +191,24 @@ function buildPayload(): OrchSavePayload {
     status: orchForm.status,
     txType: orchForm.txType,
     txTimeout: orchForm.txTimeout,
-    inputParams: [],
-    outputParams: [],
+    inputParams: inputParams.value.map(p => ({
+      id: p.id,
+      paramName: p.paramName,
+      dataType: p.dataType,
+      isRequired: p.isRequired,
+      paramComment: p.paramComment,
+      sourceNodeKey: p.sourceNodeKey,
+      sourceField: p.sourceField
+    } as OrchParamCmd)),
+    outputParams: outputParams.value.map(p => ({
+      id: p.id,
+      paramName: p.paramName,
+      dataType: p.dataType,
+      isRequired: p.isRequired,
+      paramComment: p.paramComment,
+      sourceNodeKey: p.sourceNodeKey,
+      sourceField: p.sourceField
+    } as OrchParamCmd)),
     nodes: nodes.value.map(n => ({ ...n })),
     edges: edges.value.map(e => ({ ...e }))
   }

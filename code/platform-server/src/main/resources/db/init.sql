@@ -223,3 +223,25 @@ CREATE TABLE `dev_orch_edge` (
   UNIQUE KEY `uk_dev_oe_orch_edgekey` (`orchestration_id`, `edge_key`, `is_deleted`),
   KEY `idx_dev_oe_orch_id` (`orchestration_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='编排连线表';
+
+-- 12. 编排参数表（编排级入参/出参定义）
+CREATE TABLE `dev_orch_param` (
+  `id` BIGINT NOT NULL,
+  `orchestration_id` BIGINT NOT NULL COMMENT '所属编排',
+  `param_scope` VARCHAR(16) NOT NULL COMMENT 'INPUT-编排入参, OUTPUT-编排出参',
+  `param_name` VARCHAR(64) NOT NULL,
+  `data_type` VARCHAR(32) NOT NULL,
+  `is_required` TINYINT NOT NULL DEFAULT 1,
+  `param_comment` VARCHAR(512) DEFAULT NULL,
+  `source_node_key` VARCHAR(64) DEFAULT NULL COMMENT '出参来源节点Key(仅OUTPUT)',
+  `source_field` VARCHAR(128) DEFAULT NULL COMMENT '出参来源字段(仅OUTPUT)',
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `is_deleted` TINYINT NOT NULL DEFAULT 0,
+  `create_by` BIGINT DEFAULT NULL,
+  `update_by` BIGINT DEFAULT NULL,
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dev_op_orch_scope_name` (`orchestration_id`, `param_scope`, `param_name`, `is_deleted`),
+  KEY `idx_dev_op_orch_id` (`orchestration_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='编排参数表';

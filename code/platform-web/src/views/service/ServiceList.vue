@@ -58,9 +58,14 @@
 
     <el-dialog v-model="dialogVisible" title="新建服务" width="640px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+        <el-form-item label="所属应用" prop="formAppId">
+          <el-select v-model="formAppId" placeholder="请选择" filterable style="width:100%" @change="onFormAppChange">
+            <el-option v-for="a in apps" :key="a.id" :label="a.name" :value="a.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="所属微服务" prop="microserviceId">
-          <el-select v-model="form.microserviceId" placeholder="请选择" filterable style="width:100%">
-            <el-option v-for="m in msList" :key="m.id" :label="m.name" :value="m.id" />
+          <el-select v-model="form.microserviceId" placeholder="请先选择应用" filterable style="width:100%" :disabled="!formAppId">
+            <el-option v-for="m in formMsList" :key="m.id" :label="m.name" :value="m.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="服务名称" prop="name"><el-input v-model="form.name" /></el-form-item>
@@ -119,6 +124,8 @@ function methodTag(m: string) {
 const dialogVisible = ref(false)
 const saving = ref(false)
 const formRef = ref<FormInstance>()
+const formAppId = ref<number | undefined>(undefined)
+const formMsList = ref<MicroserviceSimpleVO[]>([])
 const form = reactive<any>({ microserviceId: undefined, name: '', code: '', httpMethod: 'POST', servicePath: '', category: '', description: '' })
 const rules: FormRules = {
   microserviceId: [{ required: true, message: '请选择微服务', trigger: 'change' }],
@@ -128,8 +135,16 @@ const rules: FormRules = {
   httpMethod: [{ required: true, message: '请选择请求方式', trigger: 'change' }],
   servicePath: [{ required: true, message: '请输入服务路径', trigger: 'blur' }]
 }
+async function onFormAppChange() {
+  form.microserviceId = undefined
+  formMsList.value = formAppId.value ? await listMicroservicesByApp(formAppId.value) : []
+}
 function openCreate() {
-  Object.assign(form, { microserviceId: query.microserviceId, name: '', code: '', httpMethod: 'POST', servicePath: '', category: '', description: '' })
+  Object.assign(form, { microserviceId: undefined, name: '', code: '', httpMethod: 'POST', servicePath: '', category: '', description: '' })
+  // 如果搜索栏已选应用，预填到弹窗
+  formAppId.value = appId.value
+  formMsList.value = [...msList.value]
+  if (query.microserviceId) form.microserviceId = query.microserviceId
   dialogVisible.value = true
 }
 async function onSave() {

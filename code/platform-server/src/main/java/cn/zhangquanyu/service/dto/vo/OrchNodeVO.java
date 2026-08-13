@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class OrchNodeVO {
@@ -27,4 +29,9 @@ public class OrchNodeVO {
     @JsonProperty("yPos")
     private Integer yPos;
     private Integer sortOrder;
+
+    /** 服务节点的入参定义（仅 SERVICE/ACTION 节点，从 ServiceDef 填充） */
+    private List<ServiceParamVO> serviceInputs;
+    /** 服务节点的出参定义（仅 SERVICE/ACTION 节点，从 ServiceDef 填充） */
+    private List<ServiceParamVO> serviceOutputs;
 }
