@@ -3,10 +3,12 @@ package cn.zhangquanyu.model.controller;
 import cn.zhangquanyu.model.application.ModelAppService;
 import cn.zhangquanyu.model.dto.cmd.ModelCreateCmd;
 import cn.zhangquanyu.model.dto.cmd.ModelFieldBatchSaveCmd;
+import cn.zhangquanyu.model.dto.cmd.ModelIndexBatchSaveCmd;
 import cn.zhangquanyu.model.dto.cmd.ModelUpdateCmd;
 import cn.zhangquanyu.model.dto.query.ModelPageQuery;
 import cn.zhangquanyu.model.dto.vo.ModelDetailVO;
 import cn.zhangquanyu.model.dto.vo.ModelFieldVO;
+import cn.zhangquanyu.model.dto.vo.ModelIndexVO;
 import cn.zhangquanyu.model.dto.vo.ModelSimpleVO;
 import cn.zhangquanyu.model.dto.vo.ModelVO;
 import cn.zhangquanyu.shared.api.PageResult;
@@ -59,5 +61,11 @@ public class ModelController {
     public Result<List<ModelFieldVO>> batchSaveFields(@PathVariable Long id,
                                                       @Valid @RequestBody ModelFieldBatchSaveCmd cmd) {
         return Result.ok(appService.batchSaveFields(id, cmd));
+    }
+
+    @PostMapping("/{id}/indexes/batch-save")
+    public Result<List<ModelIndexVO>> batchSaveIndexes(@PathVariable Long id,
+                                                        @Valid @RequestBody ModelIndexBatchSaveCmd cmd) {
+        return Result.ok(appService.batchSaveIndexes(id, cmd));
     }
 }

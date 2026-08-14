@@ -7,6 +7,7 @@ import cn.zhangquanyu.model.converter.ModelConverter;
 import cn.zhangquanyu.model.domain.entity.Model;
 import cn.zhangquanyu.model.domain.entity.ModelField;
 import cn.zhangquanyu.model.domain.repository.ModelFieldRepository;
+import cn.zhangquanyu.model.domain.repository.ModelIndexRepository;
 import cn.zhangquanyu.model.domain.repository.ModelRepository;
 import cn.zhangquanyu.model.dto.cmd.ModelCreateCmd;
 import cn.zhangquanyu.model.dto.cmd.ModelFieldBatchSaveCmd;
@@ -19,6 +20,7 @@ import cn.zhangquanyu.model.dto.vo.ModelVO;
 import cn.zhangquanyu.service.domain.repository.ServiceParamRepository;
 import cn.zhangquanyu.shared.api.PageResult;
 import cn.zhangquanyu.shared.exception.BusinessException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -51,6 +53,8 @@ class ModelAppServiceTest {
     @Mock
     private ModelFieldRepository modelFieldRepository;
     @Mock
+    private ModelIndexRepository modelIndexRepository;
+    @Mock
     private MicroserviceRepository microserviceRepository;
     @Mock
     private ServiceParamRepository serviceParamRepository;
@@ -58,6 +62,8 @@ class ModelAppServiceTest {
     private MetadataRepository metadataRepository;
     @Mock
     private ModelConverter converter;
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private ModelAppService modelService;
@@ -164,6 +170,8 @@ class ModelAppServiceTest {
             when(modelFieldRepository.countByModelIdAndIsDeleted(100L, 0)).thenReturn(6L);
             when(modelFieldRepository.findByModelIdAndIsDeletedOrderBySortOrderAsc(100L, 0))
                     .thenReturn(List.of(sampleField));
+            when(modelIndexRepository.findByModelIdAndIsDeletedOrderByIdAsc(100L, 0))
+                    .thenReturn(List.of());
             when(converter.toFieldVOList(anyList())).thenReturn(List.of(fieldVO));
 
             ModelDetailVO result = modelService.getById(100L);
@@ -304,6 +312,7 @@ class ModelAppServiceTest {
             modelService.delete(100L);
 
             verify(modelFieldRepository).softDeleteByModelId(100L);
+            verify(modelIndexRepository).softDeleteByModelId(100L);
             verify(modelRepository).softDelete(100L);
         }
 

@@ -19,7 +19,7 @@ export function listSimpleApplications() {
     .then(r => r.data)
 }
 
-export function getApplication(id: number) {
+export function getApplication(id: string) {
   return request.get<any, { data: ApplicationVO }>(`/applications/${id}`).then(r => r.data)
 }
 
@@ -27,14 +27,14 @@ export function createApplication(data: Partial<ApplicationVO>) {
   return request.post<any, { data: ApplicationVO }>('/applications', data).then(r => r.data)
 }
 
-export function updateApplication(id: number, data: Partial<ApplicationVO>) {
+export function updateApplication(id: string, data: Partial<ApplicationVO>) {
   return request.put<any, { data: ApplicationVO }>(`/applications/${id}`, data).then(r => r.data)
 }
 
-export function deleteApplication(id: number) {
+export function deleteApplication(id: string) {
   return request.delete(`/applications/${id}`)
 }
 
-export function updateApplicationStatus(id: number, status: number) {
+export function updateApplicationStatus(id: string, status: number) {
   return request.put(`/applications/${id}/status`, { status })
 }

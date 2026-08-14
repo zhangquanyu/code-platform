@@ -116,7 +116,7 @@ const total = ref(0)
 const apps = ref<ApplicationSimpleVO[]>([])
 const query = reactive<MsPageQuery>({
   pageNum: 1, pageSize: 20, keyword: '', status: undefined,
-  applicationId: route.query.applicationId ? Number(route.query.applicationId) : undefined
+  applicationId: route.query.applicationId ? String(route.query.applicationId) : undefined
 })
 
 async function loadData() {
@@ -136,7 +136,7 @@ function onSearch() { query.pageNum = 1; loadData() }
 function onReset() {
   query.keyword = ''; query.status = undefined; query.applicationId = undefined; query.pageNum = 1; loadData()
 }
-function goDetail(id: number) { router.push(`/microservices/${id}`) }
+function goDetail(id: string) { router.push(`/microservices/${id}`) }
 
 const dialogVisible = ref(false)
 const isEdit = ref(false)

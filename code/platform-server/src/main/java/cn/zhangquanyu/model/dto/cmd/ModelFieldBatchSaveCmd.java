@@ -30,10 +30,8 @@ public class ModelFieldBatchSaveCmd {
         private String fieldType;
         private Integer length;
         private Integer precision;
-        private Integer scale;
         private Integer isRequired = 0;
         private Integer isPrimary = 0;
-        private Integer isUnique = 0;
         private Integer isIndex = 0;
         private String defaultValue;
         private Long metadataId;

@@ -85,7 +85,7 @@ const orchestrations = ref<OrchestrationVO[]>([])
 
 async function load() {
   loading.value = true
-  const id = Number(route.params.id)
+  const id = String(route.params.id)
   try {
     ms.value = await getMicroservice(id)
     summary.value = await getMicroserviceSummary(id)

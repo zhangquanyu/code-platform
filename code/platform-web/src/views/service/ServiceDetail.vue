@@ -118,7 +118,7 @@ const outputs = ref<ServiceParamVO[]>([])
 
 async function load() {
   loading.value = true
-  const id = Number(route.params.id)
+  const id = String(route.params.id)
   try {
     const res = await getService(id)
     Object.assign(detail, res)

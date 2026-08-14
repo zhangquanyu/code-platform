@@ -38,17 +38,11 @@ public class ModelField extends BaseEntity {
     @Column(name = "`precision`")
     private Integer precision;
 
-    @Column(name = "scale")
-    private Integer scale;
-
     @Column(name = "is_required", nullable = false)
     private Integer isRequired = 0;
 
     @Column(name = "is_primary", nullable = false)
     private Integer isPrimary = 0;
-
-    @Column(name = "is_unique", nullable = false)
-    private Integer isUnique = 0;
 
     @Column(name = "is_index", nullable = false)
     private Integer isIndex = 0;

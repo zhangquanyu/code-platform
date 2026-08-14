@@ -7,7 +7,7 @@ export interface MsPageQuery {
   pageSize?: number
   keyword?: string
   status?: number
-  applicationId?: number
+  applicationId?: string
 }
 
 export function pageMicroservices(params: MsPageQuery) {
@@ -15,17 +15,17 @@ export function pageMicroservices(params: MsPageQuery) {
     .then(r => r.data)
 }
 
-export function listMicroservicesByApp(applicationId: number) {
+export function listMicroservicesByApp(applicationId: string) {
   return request.get<any, { data: MicroserviceSimpleVO[] }>(
     `/microservices/by-application/${applicationId}`
   ).then(r => r.data)
 }
 
-export function getMicroservice(id: number) {
+export function getMicroservice(id: string) {
   return request.get<any, { data: MicroserviceVO }>(`/microservices/${id}`).then(r => r.data)
 }
 
-export function getMicroserviceSummary(id: number) {
+export function getMicroserviceSummary(id: string) {
   return request.get<any, { data: MicroserviceSummaryVO }>(`/microservices/${id}/summary`)
     .then(r => r.data)
 }
@@ -34,14 +34,14 @@ export function createMicroservice(data: Partial<MicroserviceVO>) {
   return request.post<any, { data: MicroserviceVO }>('/microservices', data).then(r => r.data)
 }
 
-export function updateMicroservice(id: number, data: Partial<MicroserviceVO>) {
+export function updateMicroservice(id: string, data: Partial<MicroserviceVO>) {
   return request.put<any, { data: MicroserviceVO }>(`/microservices/${id}`, data).then(r => r.data)
 }
 
-export function deleteMicroservice(id: number) {
+export function deleteMicroservice(id: string) {
   return request.delete(`/microservices/${id}`)
 }
 
-export function updateMicroserviceStatus(id: number, status: number) {
+export function updateMicroserviceStatus(id: string, status: number) {
   return request.put(`/microservices/${id}/status`, { status })
 }

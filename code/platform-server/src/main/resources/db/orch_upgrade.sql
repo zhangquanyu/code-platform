@@ -40,5 +40,27 @@ CREATE TABLE IF NOT EXISTS `dev_orch_param` (
 ALTER TABLE `dev_orch_param` ADD COLUMN `create_by` BIGINT DEFAULT NULL AFTER `is_deleted`;
 ALTER TABLE `dev_orch_param` ADD COLUMN `update_by` BIGINT DEFAULT NULL AFTER `create_by`;
 
--- 14. 补充 dev_model_field 表缺失的 scale 列（DECIMAL小数位数）
-ALTER TABLE `dev_model_field` ADD COLUMN `scale` INT DEFAULT NULL COMMENT '标度(DECIMAL小数位数)' AFTER `precision`;
+-- 14. 移除 dev_model_field 表的 scale 列（统一使用 length 和 precision 两个字段）
+-- 如果 scale 列已存在则删除，不存在会报错可忽略
+ALTER TABLE `dev_model_field` DROP COLUMN `scale`;
+
+-- 15. 模型索引表（字段管理与索引管理分 Tab）
+CREATE TABLE IF NOT EXISTS `dev_model_index` (
+  `id` BIGINT NOT NULL,
+  `model_id` BIGINT NOT NULL COMMENT '所属模型',
+  `index_name` VARCHAR(64) NOT NULL COMMENT '索引名称',
+  `index_type` VARCHAR(20) NOT NULL DEFAULT 'NORMAL' COMMENT '索引类型: NORMAL/UNIQUE/FULLTEXT',
+  `field_ids` VARCHAR(1024) NOT NULL COMMENT '字段ID列表(JSON数组)',
+  `is_deleted` TINYINT NOT NULL DEFAULT 0,
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_by` BIGINT DEFAULT NULL,
+  `update_by` BIGINT DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dev_mi_model_name` (`model_id`, `index_name`, `is_deleted`),
+  KEY `idx_dev_mi_model_id` (`model_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型索引表';
+
+-- 16. 移除 dev_model_field 表的 is_unique 列（唯一约束改由索引管理维护）
+-- 如果 is_unique 列已存在则删除，不存在会报错可忽略
+ALTER TABLE `dev_model_field` DROP COLUMN `is_unique`;

@@ -2,8 +2,10 @@ package cn.zhangquanyu.model.converter;
 
 import cn.zhangquanyu.model.domain.entity.Model;
 import cn.zhangquanyu.model.domain.entity.ModelField;
+import cn.zhangquanyu.model.domain.entity.ModelIndex;
 import cn.zhangquanyu.model.dto.cmd.ModelCreateCmd;
 import cn.zhangquanyu.model.dto.vo.ModelFieldVO;
+import cn.zhangquanyu.model.dto.vo.ModelIndexVO;
 import cn.zhangquanyu.model.dto.vo.ModelSimpleVO;
 import cn.zhangquanyu.model.dto.vo.ModelVO;
 import org.mapstruct.Mapper;
@@ -23,6 +25,12 @@ public interface ModelConverter {
     ModelFieldVO toFieldVO(ModelField entity);
 
     List<ModelFieldVO> toFieldVOList(List<ModelField> entities);
+
+    @Mapping(target = "fieldIds", ignore = true)
+    @Mapping(target = "fieldNames", ignore = true)
+    ModelIndexVO toIndexVO(ModelIndex entity);
+
+    List<ModelIndexVO> toIndexVOList(List<ModelIndex> entities);
 
     ModelSimpleVO toSimpleVO(Model entity);
 

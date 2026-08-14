@@ -174,21 +174,21 @@ public class MockDataInitializer implements CommandLineRunner {
         // 订单模型
         Long orderModelId = createModel(msIds.get("order-svc"), "订单", "Order", "订单主模型");
         modelIds.put("order", orderModelId);
-        createField(orderModelId, "id", "主键ID", "BIGINT", null, null, 1, 1, 1, 1, null, null, 1, "主键");
-        createField(orderModelId, "orderNo", "订单号", "VARCHAR", 64, null, 1, 0, 1, 1, null, null, 2, "唯一订单编号");
-        createField(orderModelId, "userId", "用户ID", "BIGINT", null, null, 1, 0, 0, 1, null, null, 3, "下单用户");
-        createField(orderModelId, "amount", "订单金额", "DECIMAL", 12, 2, 1, 0, 0, 0, null, null, 4, "总金额");
-        createField(orderModelId, "status", "订单状态", "ENUM", null, null, 1, 0, 0, 0, null, metaIds.get("order-status"), 5, "关联订单状态元数据");
-        createField(orderModelId, "createTime", "创建时间", "DATETIME", null, null, 0, 0, 0, 0, null, null, 6, "下单时间");
+        createField(orderModelId, "id", "主键ID", "BIGINT", null, null, 1, 1, 1, null, null, 1, "主键");
+        createField(orderModelId, "orderNo", "订单号", "VARCHAR", 64, null, 1, 0, 1, null, null, 2, "唯一订单编号");
+        createField(orderModelId, "userId", "用户ID", "BIGINT", null, null, 1, 0, 1, null, null, 3, "下单用户");
+        createField(orderModelId, "amount", "订单金额", "DECIMAL", 12, 2, 1, 0, 0, null, null, 4, "总金额");
+        createField(orderModelId, "status", "订单状态", "ENUM", null, null, 1, 0, 0, null, metaIds.get("order-status"), 5, "关联订单状态元数据");
+        createField(orderModelId, "createTime", "创建时间", "DATETIME", null, null, 0, 0, 0, null, null, 6, "下单时间");
 
         // 用户模型
         Long userModelId = createModel(msIds.get("user-svc"), "用户", "User", "用户主模型");
         modelIds.put("user", userModelId);
-        createField(userModelId, "id", "主键ID", "BIGINT", null, null, 1, 1, 1, 1, null, null, 1, "主键");
-        createField(userModelId, "username", "用户名", "VARCHAR", 64, null, 1, 0, 1, 1, null, null, 2, "登录用户名");
-        createField(userModelId, "phone", "手机号", "VARCHAR", 20, null, 0, 0, 0, 1, null, null, 3, "联系电话");
-        createField(userModelId, "userType", "用户类型", "ENUM", null, null, 0, 0, 0, 0, null, metaIds.get("user-type"), 4, "关联用户类型元数据");
-        createField(userModelId, "createTime", "注册时间", "DATETIME", null, null, 0, 0, 0, 0, null, null, 5, "注册时间");
+        createField(userModelId, "id", "主键ID", "BIGINT", null, null, 1, 1, 1, null, null, 1, "主键");
+        createField(userModelId, "username", "用户名", "VARCHAR", 64, null, 1, 0, 1, null, null, 2, "登录用户名");
+        createField(userModelId, "phone", "手机号", "VARCHAR", 20, null, 0, 0, 1, null, null, 3, "联系电话");
+        createField(userModelId, "userType", "用户类型", "ENUM", null, null, 0, 0, 0, null, metaIds.get("user-type"), 4, "关联用户类型元数据");
+        createField(userModelId, "createTime", "注册时间", "DATETIME", null, null, 0, 0, 0, null, null, 5, "注册时间");
 
         log.info("[Mock] 模型数据种子化完成: {}", modelIds);
     }
@@ -206,7 +206,7 @@ public class MockDataInitializer implements CommandLineRunner {
     @SuppressWarnings("checkstyle:ParameterNumber")
     private void createField(Long modelId, String name, String displayName, String fieldType,
                              Integer length, Integer precision, int isRequired, int isPrimary,
-                             int isUnique, int isIndex, String defaultValue, Long metadataId,
+                             int isIndex, String defaultValue, Long metadataId,
                              int sortOrder, String comment) {
         ModelField field = new ModelField();
         field.setModelId(modelId);
@@ -217,7 +217,6 @@ public class MockDataInitializer implements CommandLineRunner {
         field.setPrecision(precision);
         field.setIsRequired(isRequired);
         field.setIsPrimary(isPrimary);
-        field.setIsUnique(isUnique);
         field.setIsIndex(isIndex);
         field.setDefaultValue(defaultValue);
         field.setMetadataId(metadataId);

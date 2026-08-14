@@ -88,7 +88,7 @@ import { listSimpleApplications } from '@/api/application'
 import type { OrchNodeVO, OrchEdgeVO, OrchestrationDetailVO, ApplicationSimpleVO, OrchParamVO } from '@/types'
 
 const route = useRoute()
-const orchId = Number(route.params.id)
+const orchId = String(route.params.id)
 
 const loading = ref(false)
 const saving = ref(false)

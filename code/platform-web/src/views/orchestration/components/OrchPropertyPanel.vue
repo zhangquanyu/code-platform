@@ -316,7 +316,7 @@
           </el-table-column>
           <el-table-column label="服务ID" min-width="120">
             <template #default="{ row }">
-              <el-input-number v-model="row.serviceId" :min="1" size="small" controls-position="right" style="width:100%" @change="onLoopConfigChange" />
+              <el-input v-model="row.serviceId" size="small" placeholder="服务ID" @change="onLoopConfigChange" />
             </template>
           </el-table-column>
           <el-table-column label="操作" width="60">
@@ -427,7 +427,7 @@ interface ParamMapping {
 interface LoopBodyItem {
   nodeKey: string
   nodeName: string
-  serviceId: number | null
+  serviceId: string | null
   paramMappings: ParamMapping[]
 }
 
@@ -445,8 +445,8 @@ const loopIndex = ref('')
 const loopBody = ref<LoopBodyItem[]>([])
 
 // --- 节点服务选择：应用 → 微服务 → 服务 三级联动 ---
-const nodeAppId = ref<number | null>(null)
-const nodeMsId = ref<number | null>(null)
+const nodeAppId = ref<string | null>(null)
+const nodeMsId = ref<string | null>(null)
 const nodeMsList = ref<MicroserviceSimpleVO[]>([])
 const nodeSvcList = ref<ServiceSimpleVO[]>([])
 
@@ -564,7 +564,7 @@ function getNodeOutputs(nodeKey: string): ServiceParamVO[] {
   return n?.serviceOutputs || []
 }
 
-async function onAppChange(appId: number | null) {
+async function onAppChange(appId: string | null) {
   nodeMsId.value = null
   nodeSvcList.value = []
   if (props.selectedNode) {
@@ -582,7 +582,7 @@ async function onAppChange(appId: number | null) {
   emitNode()
 }
 
-async function onMsChange(msId: number | null) {
+async function onMsChange(msId: string | null) {
   if (props.selectedNode) {
     props.selectedNode.serviceId = null
     props.selectedNode.serviceName = null
@@ -598,7 +598,7 @@ async function onMsChange(msId: number | null) {
   emitNode()
 }
 
-function onServiceChange(serviceId: number | null) {
+function onServiceChange(serviceId: string | null) {
   if (!props.selectedNode) return
   const svc = nodeSvcList.value.find(s => s.id === serviceId)
   if (svc) {

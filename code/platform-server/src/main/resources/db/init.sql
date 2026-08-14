@@ -66,11 +66,9 @@ CREATE TABLE `dev_model_field` (
   `display_name` VARCHAR(128) NOT NULL COMMENT '显示名',
   `field_type` VARCHAR(32) NOT NULL COMMENT '数据类型',
   `length` INT DEFAULT NULL,
-  `precision` INT DEFAULT NULL COMMENT '精度(DECIMAL总位数)',
-  `scale` INT DEFAULT NULL COMMENT '标度(DECIMAL小数位数)',
+  `precision` INT DEFAULT NULL COMMENT '精度',
   `is_required` TINYINT NOT NULL DEFAULT 0,
   `is_primary` TINYINT NOT NULL DEFAULT 0,
-  `is_unique` TINYINT NOT NULL DEFAULT 0,
   `is_index` TINYINT NOT NULL DEFAULT 0,
   `default_value` VARCHAR(256) DEFAULT NULL,
   `metadata_id` BIGINT DEFAULT NULL COMMENT '关联元数据(枚举类型)',
@@ -87,7 +85,24 @@ CREATE TABLE `dev_model_field` (
   KEY `idx_dev_mf_metadata_id` (`metadata_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型字段表';
 
--- 5. 元数据表
+-- 5. 模型索引表
+CREATE TABLE `dev_model_index` (
+  `id` BIGINT NOT NULL,
+  `model_id` BIGINT NOT NULL COMMENT '所属模型',
+  `index_name` VARCHAR(64) NOT NULL COMMENT '索引名称',
+  `index_type` VARCHAR(20) NOT NULL DEFAULT 'NORMAL' COMMENT '索引类型: NORMAL-普通索引, UNIQUE-唯一索引, FULLTEXT-全文索引',
+  `field_ids` VARCHAR(1024) NOT NULL COMMENT '字段ID列表(JSON数组)',
+  `is_deleted` TINYINT NOT NULL DEFAULT 0,
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_by` BIGINT DEFAULT NULL,
+  `update_by` BIGINT DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dev_mi_model_name` (`model_id`, `index_name`, `is_deleted`),
+  KEY `idx_dev_mi_model_id` (`model_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型索引表';
+
+-- 6. 元数据表
 CREATE TABLE `dev_metadata` (
   `id` BIGINT NOT NULL,
   `application_id` BIGINT NOT NULL COMMENT '所属应用',

@@ -121,7 +121,7 @@ function onSearch() { query.pageNum = 1; loadData() }
 function onReset() {
   query.keyword = ''; query.status = undefined; query.pageNum = 1; loadData()
 }
-function goDetail(id: number) { router.push(`/applications/${id}`) }
+function goDetail(id: string) { router.push(`/applications/${id}`) }
 
 const dialogVisible = ref(false)
 const isEdit = ref(false)

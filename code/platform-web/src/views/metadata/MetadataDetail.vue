@@ -72,12 +72,12 @@ const saving = ref(false)
 const detail = reactive<MetadataDetailVO>({} as MetadataDetailVO)
 const items = ref<MetadataItemVO[]>([])
 const refs = ref<MetadataRefVO[]>([])
-const deletedItemIds = ref<number[]>([])
+const deletedItemIds = ref<string[]>([])
 const activeTab = ref('items')
 
 async function load() {
   loading.value = true
-  const id = Number(route.params.id)
+  const id = String(route.params.id)
   try {
     const res = await getMetadata(id)
     Object.assign(detail, res)

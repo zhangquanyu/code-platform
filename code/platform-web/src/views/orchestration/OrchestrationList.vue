@@ -104,10 +104,10 @@ const tableData = ref<OrchestrationVO[]>([])
 const total = ref(0)
 const apps = ref<ApplicationSimpleVO[]>([])
 const msList = ref<MicroserviceSimpleVO[]>([])
-const appId = ref<number | undefined>(undefined)
+const appId = ref<string | undefined>(undefined)
 const query = reactive<OrchPageQuery>({
   pageNum: 1, pageSize: 20, keyword: '',
-  microserviceId: route.query.microserviceId ? Number(route.query.microserviceId) : undefined
+  microserviceId: route.query.microserviceId ? String(route.query.microserviceId) : undefined
 })
 
 async function loadData() {
@@ -147,7 +147,7 @@ function openCreate() {
   dialogMsList.value = appId.value ? msList.value : []
   dialogVisible.value = true
 }
-async function onDialogAppChange(appIdVal: number) {
+async function onDialogAppChange(appIdVal: string) {
   form.microserviceId = undefined
   dialogMsList.value = appIdVal ? await listMicroservicesByApp(appIdVal) : []
 }

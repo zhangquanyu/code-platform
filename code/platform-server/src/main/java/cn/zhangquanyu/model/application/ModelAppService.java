@@ -7,20 +7,27 @@ import cn.zhangquanyu.metadata.domain.repository.MetadataRepository;
 import cn.zhangquanyu.model.converter.ModelConverter;
 import cn.zhangquanyu.model.domain.entity.Model;
 import cn.zhangquanyu.model.domain.entity.ModelField;
+import cn.zhangquanyu.model.domain.entity.ModelIndex;
 import cn.zhangquanyu.model.domain.repository.ModelFieldRepository;
+import cn.zhangquanyu.model.domain.repository.ModelIndexRepository;
 import cn.zhangquanyu.model.domain.repository.ModelRepository;
 import cn.zhangquanyu.model.dto.cmd.ModelCreateCmd;
 import cn.zhangquanyu.model.dto.cmd.ModelFieldBatchSaveCmd;
+import cn.zhangquanyu.model.dto.cmd.ModelIndexBatchSaveCmd;
 import cn.zhangquanyu.model.dto.cmd.ModelUpdateCmd;
 import cn.zhangquanyu.model.dto.query.ModelPageQuery;
 import cn.zhangquanyu.model.dto.vo.ModelDetailVO;
 import cn.zhangquanyu.model.dto.vo.ModelFieldVO;
+import cn.zhangquanyu.model.dto.vo.ModelIndexVO;
 import cn.zhangquanyu.model.dto.vo.ModelSimpleVO;
 import cn.zhangquanyu.model.dto.vo.ModelVO;
 import cn.zhangquanyu.service.domain.repository.ServiceParamRepository;
 import cn.zhangquanyu.shared.api.PageResult;
 import cn.zhangquanyu.shared.exception.BusinessException;
 import cn.zhangquanyu.shared.util.SpecUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,10 +52,12 @@ public class ModelAppService {
 
     private final ModelRepository modelRepository;
     private final ModelFieldRepository modelFieldRepository;
+    private final ModelIndexRepository modelIndexRepository;
     private final MicroserviceRepository microserviceRepository;
     private final MetadataRepository metadataRepository;
     private final ServiceParamRepository serviceParamRepository;
     private final ModelConverter converter;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public PageResult<ModelVO> page(ModelPageQuery query) {
@@ -83,10 +93,17 @@ public class ModelAppService {
         List<ModelField> fields = modelFieldRepository
                 .findByModelIdAndIsDeletedOrderBySortOrderAsc(id, 0);
         List<ModelFieldVO> fieldVOs = fillMetadataNames(converter.toFieldVOList(fields));
+
+        List<ModelIndex> indexes = modelIndexRepository
+                .findByModelIdAndIsDeletedOrderByIdAsc(id, 0);
+        List<ModelIndexVO> indexVOs = fillFieldNames(indexes, fields);
+
         ModelDetailVO detail = new ModelDetailVO();
         detail.setModel(vo);
         detail.setFields(fieldVOs);
-        log.info("[模型] 查询详情成功: id={}, name={}, code={}, fieldCount={}", id, model.getName(), model.getCode(), fieldVOs.size());
+        detail.setIndexes(indexVOs);
+        log.info("[模型] 查询详情成功: id={}, name={}, code={}, fieldCount={}, indexCount={}",
+                id, model.getName(), model.getCode(), fieldVOs.size(), indexVOs.size());
         return detail;
     }
 
@@ -131,7 +148,6 @@ public class ModelAppService {
     public void delete(Long id) {
         log.info("[模型] 删除开始: id={}", id);
         findOrThrow(id);
-        // 校验是否被服务参数引用
         long refCount = serviceParamRepository.countByModelFieldIn(
                 modelFieldRepository.findByMetadataIdAndIsDeleted(id, 0)
                         .stream().map(ModelField::getId).toList());
@@ -141,14 +157,12 @@ public class ModelAppService {
             throw new BusinessException(62001, "模型已被服务参数引用，无法删除");
         }
         modelFieldRepository.softDeleteByModelId(id);
-        log.debug("[模型] 字段软删除完成: modelId={}", id);
+        modelIndexRepository.softDeleteByModelId(id);
+        log.debug("[模型] 字段/索引软删除完成: modelId={}", id);
         modelRepository.softDelete(id);
         log.info("[模型] 删除成功(软删除): id={}", id);
     }
 
-    /**
-     * 批量保存模型字段
-     */
     @Transactional
     public List<ModelFieldVO> batchSaveFields(Long modelId, ModelFieldBatchSaveCmd cmd) {
         log.info("[模型] 批量保存字段开始: modelId={}, fieldCount={}, deletedIds={}",
@@ -156,15 +170,12 @@ public class ModelAppService {
         findOrThrow(modelId);
         List<ModelFieldBatchSaveCmd.FieldItem> items = cmd.getFields();
 
-        // 1. 主键校验：至少一个主键字段
         boolean hasPrimary = items.stream().anyMatch(i -> i.getIsPrimary() != null && i.getIsPrimary() == 1);
         if (!hasPrimary) {
             log.warn("[模型] 批量保存失败-缺少主键字段: modelId={}", modelId);
             throw new BusinessException(62002, "模型必须包含至少一个主键字段");
         }
-        log.debug("[模型] 主键校验通过: modelId={}", modelId);
 
-        // 2. 字段名唯一性校验
         Set<String> names = new HashSet<>();
         for (ModelFieldBatchSaveCmd.FieldItem i : items) {
             if (!names.add(i.getName())) {
@@ -172,9 +183,7 @@ public class ModelAppService {
                 throw new BusinessException(62005, "字段名重复: " + i.getName());
             }
         }
-        log.debug("[模型] 字段名唯一性校验通过: modelId={}, fieldCount={}", modelId, items.size());
 
-        // 3. 枚举字段必须关联元数据，且元数据属于上层应用
         Microservice ms = microserviceRepository.findByIdAndIsDeleted(
                 modelRepository.findByIdAndIsDeleted(modelId, 0)
                         .map(Model::getMicroserviceId).orElseThrow(), 0)
@@ -192,27 +201,26 @@ public class ModelAppService {
             }
         }
 
-        // 4. 软删除被移除的字段
         if (cmd.getDeletedFieldIds() != null) {
-            log.debug("[模型] 软删除字段: modelId={}, deletedFieldIds={}", modelId, cmd.getDeletedFieldIds());
             for (Long fid : cmd.getDeletedFieldIds()) {
                 modelFieldRepository.softDelete(fid);
             }
         }
 
-        // 5. upsert 字段
         List<ModelField> saved = new ArrayList<>();
         for (ModelFieldBatchSaveCmd.FieldItem i : items) {
             ModelField field;
             if (i.getId() != null) {
                 field = modelFieldRepository.findById(i.getId())
                         .orElseGet(ModelField::new);
-                log.debug("[模型] 更新已有字段: fieldId={}, name={}", i.getId(), i.getName());
             } else {
-                field = new ModelField();
-                field.setModelId(modelId);
-                field.setIsDeleted(0);
-                log.debug("[模型] 新增字段: name={}, type={}", i.getName(), i.getFieldType());
+                field = modelFieldRepository.findByModelIdAndNameAndIsDeleted(modelId, i.getName(), 0)
+                        .orElseGet(() -> {
+                            ModelField f = new ModelField();
+                            f.setModelId(modelId);
+                            f.setIsDeleted(0);
+                            return f;
+                        });
             }
             field.setName(i.getName());
             field.setDisplayName(i.getDisplayName());
@@ -221,7 +229,6 @@ public class ModelAppService {
             field.setPrecision(i.getPrecision());
             field.setIsRequired(i.getIsRequired() == null ? 0 : i.getIsRequired());
             field.setIsPrimary(i.getIsPrimary() == null ? 0 : i.getIsPrimary());
-            field.setIsUnique(i.getIsUnique() == null ? 0 : i.getIsUnique());
             field.setIsIndex(i.getIsIndex() == null ? 0 : i.getIsIndex());
             field.setDefaultValue(i.getDefaultValue());
             field.setMetadataId(i.getMetadataId());
@@ -231,6 +238,53 @@ public class ModelAppService {
         }
         log.info("[模型] 批量保存字段完成: modelId={}, savedCount={}", modelId, saved.size());
         return fillMetadataNames(converter.toFieldVOList(saved));
+    }
+
+    @Transactional
+    public List<ModelIndexVO> batchSaveIndexes(Long modelId, ModelIndexBatchSaveCmd cmd) {
+        log.info("[模型] 批量保存索引开始: modelId={}, indexCount={}, deletedIds={}",
+                modelId, cmd.getIndexes() == null ? 0 : cmd.getIndexes().size(), cmd.getDeletedIndexIds());
+        findOrThrow(modelId);
+        List<ModelIndexBatchSaveCmd.IndexItem> items = cmd.getIndexes();
+
+        Set<String> names = new HashSet<>();
+        for (ModelIndexBatchSaveCmd.IndexItem i : items) {
+            if (!names.add(i.getIndexName())) {
+                throw new BusinessException(62010, "索引名重复: " + i.getIndexName());
+            }
+        }
+
+        if (cmd.getDeletedIndexIds() != null) {
+            for (Long id : cmd.getDeletedIndexIds()) {
+                modelIndexRepository.softDelete(id);
+            }
+        }
+
+        List<ModelIndex> saved = new ArrayList<>();
+        for (ModelIndexBatchSaveCmd.IndexItem i : items) {
+            ModelIndex index;
+            if (i.getId() != null) {
+                index = modelIndexRepository.findById(i.getId())
+                        .orElseGet(ModelIndex::new);
+            } else {
+                index = new ModelIndex();
+                index.setModelId(modelId);
+                index.setIsDeleted(0);
+            }
+            index.setIndexName(i.getIndexName());
+            index.setIndexType(i.getIndexType());
+            try {
+                index.setFieldIds(objectMapper.writeValueAsString(i.getFieldIds()));
+            } catch (JsonProcessingException e) {
+                throw new BusinessException(62011, "索引字段序列化失败");
+            }
+            saved.add(modelIndexRepository.save(index));
+        }
+        log.info("[模型] 批量保存索引完成: modelId={}, savedCount={}", modelId, saved.size());
+
+        List<ModelField> fields = modelFieldRepository
+                .findByModelIdAndIsDeletedOrderBySortOrderAsc(modelId, 0);
+        return fillFieldNames(saved, fields);
     }
 
     private ModelVO toVOWithStats(Model model) {
@@ -262,6 +316,32 @@ public class ModelAppService {
         return fields;
     }
 
+    private List<ModelIndexVO> fillFieldNames(List<ModelIndex> indexes, List<ModelField> fields) {
+        Map<Long, String> fieldNameMap = new HashMap<>();
+        for (ModelField f : fields) {
+            fieldNameMap.put(f.getId(), f.getName());
+        }
+        List<ModelIndexVO> result = new ArrayList<>();
+        for (ModelIndex entity : indexes) {
+            ModelIndexVO vo = converter.toIndexVO(entity);
+            try {
+                List<Long> fieldIds = objectMapper.readValue(
+                        entity.getFieldIds() != null ? entity.getFieldIds() : "[]",
+                        new TypeReference<List<Long>>() {});
+                vo.setFieldIds(fieldIds);
+                String names = fieldIds.stream()
+                        .map(fid -> fieldNameMap.getOrDefault(fid, "?"))
+                        .collect(Collectors.joining(", "));
+                vo.setFieldNames(names);
+            } catch (JsonProcessingException e) {
+                vo.setFieldIds(new ArrayList<>());
+                vo.setFieldNames("");
+            }
+            result.add(vo);
+        }
+        return result;
+    }
+
     private Model findOrThrow(Long id) {
         Model model = modelRepository.findByIdAndIsDeleted(id, 0)
                 .orElse(null);
@@ -269,8 +349,6 @@ public class ModelAppService {
             log.warn("[模型] 实体未找到或已删除: id={}, isDeleted=0", id);
             throw new BusinessException(62008, "模型不存在: " + id);
         }
-        log.debug("[模型] 实体查询成功: id={}, name={}, code={}, msId={}",
-                id, model.getName(), model.getCode(), model.getMicroserviceId());
         return model;
     }
 }

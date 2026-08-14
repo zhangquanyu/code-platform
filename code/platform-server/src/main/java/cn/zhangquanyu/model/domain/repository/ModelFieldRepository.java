@@ -25,4 +25,6 @@ public interface ModelFieldRepository extends JpaRepository<ModelField, Long> {
     @Modifying
     @Query("update ModelField f set f.isDeleted = 1 where f.id = :id")
     int softDelete(@Param("id") Long id);
+
+    java.util.Optional<ModelField> findByModelIdAndNameAndIsDeleted(Long modelId, String name, Integer isDeleted);
 }

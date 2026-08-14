@@ -147,7 +147,7 @@ function syncToProps(immediate = false) {
           newNodes.push(existing)
         } else {
           newNodes.push({
-            id: 0,
+            id: '',
             nodeKey: ln.id,
             nodeType: orchType,
             nodeName: ln.text?.value || typeLabels[orchType] || ln.id,
@@ -177,7 +177,7 @@ function syncToProps(immediate = false) {
           newEdges.push(existing)
         } else {
           newEdges.push({
-            id: 0, edgeKey: le.id,
+            id: '', edgeKey: le.id,
             fromNodeKey: le.sourceNodeId,
             toNodeKey: le.targetNodeId,
             conditionExpr: null,

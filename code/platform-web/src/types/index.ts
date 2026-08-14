@@ -1,7 +1,7 @@
 import type { PageResult } from '@/utils/request'
 
 export interface ApplicationVO {
-  id: number
+  id: string
   name: string
   code: string
   version: string
@@ -12,14 +12,14 @@ export interface ApplicationVO {
 }
 
 export interface ApplicationSimpleVO {
-  id: number
+  id: string
   name: string
   code: string
 }
 
 export interface MicroserviceVO {
-  id: number
-  applicationId: number
+  id: string
+  applicationId: string
   applicationName: string
   name: string
   code: string
@@ -30,8 +30,8 @@ export interface MicroserviceVO {
 }
 
 export interface MicroserviceSimpleVO {
-  id: number
-  applicationId: number
+  id: string
+  applicationId: string
   name: string
   code: string
 }
@@ -43,10 +43,10 @@ export interface MicroserviceSummaryVO {
 }
 
 export interface ModelVO {
-  id: number
-  microserviceId: number
+  id: string
+  microserviceId: string
   microserviceName: string
-  applicationId: number
+  applicationId: string
   name: string
   code: string
   description: string | null
@@ -55,40 +55,48 @@ export interface ModelVO {
 }
 
 export interface ModelFieldVO {
-  id: number | null
-  modelId: number
+  id: string | null
+  modelId: string
   name: string
   displayName: string
   fieldType: string
   length: number | null
   precision: number | null
-  scale: number | null
   isRequired: 0 | 1
   isPrimary: 0 | 1
-  isUnique: 0 | 1
   isIndex: 0 | 1
   defaultValue: string | null
-  metadataId: number | null
+  metadataId: string | null
   metadataName: string | null
   sortOrder: number
   fieldComment: string | null
 }
 
+export interface ModelIndexVO {
+  id: string | null
+  modelId: string
+  indexName: string
+  indexType: string
+  fieldIds: string[]
+  fieldNames: string
+}
+
 export interface ModelDetailVO {
   model: ModelVO
   fields: ModelFieldVO[]
+  indexes: ModelIndexVO[]
 }
 
 export interface ModelSimpleVO {
-  id: number
-  microserviceId: number
+  id: string
+  microserviceId: string
   name: string
   code: string
 }
 
 export interface MetadataVO {
-  id: number
-  applicationId: number
+  id: string
+  applicationId: string
   applicationName: string
   name: string
   code: string
@@ -99,8 +107,8 @@ export interface MetadataVO {
 }
 
 export interface MetadataItemVO {
-  id: number | null
-  metadataId: number
+  id: string | null
+  metadataId: string
   itemCode: string
   itemName: string
   itemValue: string | null
@@ -115,24 +123,24 @@ export interface MetadataDetailVO {
 }
 
 export interface MetadataRefVO {
-  modelId: number
+  modelId: string
   modelName: string
-  fieldId: number
+  fieldId: string
   fieldName: string
   displayName: string
   microserviceName: string
 }
 
 export interface MetadataSimpleVO {
-  id: number
-  applicationId: number
+  id: string
+  applicationId: string
   name: string
   code: string
 }
 
 export interface ServiceVO {
-  id: number
-  microserviceId: number
+  id: string
+  microserviceId: string
   microserviceName: string
   name: string
   code: string
@@ -147,14 +155,14 @@ export interface ServiceVO {
 }
 
 export interface ServiceParamVO {
-  id: number | null
-  serviceId: number
+  id: string | null
+  serviceId: string
   paramType: number
   paramName: string
   dataType: string
   isRequired: 0 | 1
   defaultValue: string | null
-  modelFieldId: number | null
+  modelFieldId: string | null
   sortOrder: number
   paramComment: string | null
 }
@@ -166,8 +174,8 @@ export interface ServiceDetailVO {
 }
 
 export interface ServiceSimpleVO {
-  id: number
-  microserviceId: number
+  id: string
+  microserviceId: string
   name: string
   code: string
   httpMethod: string
@@ -175,10 +183,10 @@ export interface ServiceSimpleVO {
 }
 
 export interface OrchestrationVO {
-  id: number
-  microserviceId: number
+  id: string
+  microserviceId: string
   microserviceName: string
-  applicationId: number
+  applicationId: string
   name: string
   code: string
   description: string | null
@@ -191,11 +199,11 @@ export interface OrchestrationVO {
 }
 
 export interface OrchNodeVO {
-  id: number
+  id: string
   nodeKey: string
   nodeType: string
   nodeName: string | null
-  serviceId: number | null
+  serviceId: string | null
   serviceName: string | null
   configJson: string | null
   txType: string | null
@@ -213,12 +221,12 @@ export interface OrchNodeVO {
   /** 服务节点出参定义（后端填充） */
   serviceOutputs?: ServiceParamVO[]
   // 前端辅助字段（不持久化到后端，存在 configJson 中）
-  appId?: number | null
-  msId?: number | null
+  appId?: string | null
+  msId?: string | null
 }
 
 export interface OrchEdgeVO {
-  id: number
+  id: string
   edgeKey: string
   fromNodeKey: string
   toNodeKey: string
@@ -227,7 +235,7 @@ export interface OrchEdgeVO {
 }
 
 export interface OrchParamVO {
-  id: number | null
+  id: string | null
   paramName: string
   dataType: string
   isRequired: number
@@ -246,7 +254,7 @@ export interface OrchestrationDetailVO {
 
 export interface OrchHealthVO {
   healthy: boolean
-  alerts: { nodeKey: string; serviceId: number; reason: string }[]
+  alerts: { nodeKey: string; serviceId: string; reason: string }[]
 }
 
 export type { PageResult }

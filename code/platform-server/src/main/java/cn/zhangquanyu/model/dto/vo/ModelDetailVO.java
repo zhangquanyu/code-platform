@@ -9,4 +9,5 @@ public class ModelDetailVO {
 
     private ModelVO model;
     private List<ModelFieldVO> fields;
+    private List<ModelIndexVO> indexes;
 }

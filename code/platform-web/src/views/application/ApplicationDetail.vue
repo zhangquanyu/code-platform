@@ -77,7 +77,7 @@ const metadata = ref<MetadataVO[]>([])
 
 async function load() {
   loading.value = true
-  const id = Number(route.params.id)
+  const id = String(route.params.id)
   try {
     app.value = await getApplication(id)
     const msRes = await pageMicroservices({ applicationId: id, pageSize: 100 })

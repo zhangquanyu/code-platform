@@ -7,45 +7,45 @@ export interface MetaPageQuery {
   pageSize?: number
   keyword?: string
   status?: number
-  applicationId?: number
+  applicationId?: string
 }
 
 export function pageMetadata(params: MetaPageQuery) {
   return request.get<any, { data: PageResult<MetadataVO> }>('/metadata', { params }).then(r => r.data)
 }
 
-export function listMetadataByApp(applicationId: number) {
+export function listMetadataByApp(applicationId: string) {
   return request.get<any, { data: MetadataSimpleVO[] }>(`/metadata/by-application/${applicationId}`)
     .then(r => r.data)
 }
 
-export function getMetadata(id: number) {
+export function getMetadata(id: string) {
   return request.get<any, { data: MetadataDetailVO }>(`/metadata/${id}`).then(r => r.data)
 }
 
-export function listMetadataRefs(id: number) {
+export function listMetadataRefs(id: string) {
   return request.get<any, { data: MetadataRefVO[] }>(`/metadata/${id}/references`).then(r => r.data)
 }
 
-export function createMetadata(data: { applicationId: number; name: string; code: string; description?: string }) {
+export function createMetadata(data: { applicationId: string; name: string; code: string; description?: string }) {
   return request.post<any, { data: MetadataVO }>('/metadata', data).then(r => r.data)
 }
 
-export function updateMetadata(id: number, data: { name: string; description?: string }) {
+export function updateMetadata(id: string, data: { name: string; description?: string }) {
   return request.put<any, { data: MetadataVO }>(`/metadata/${id}`, data).then(r => r.data)
 }
 
-export function deleteMetadata(id: number) {
+export function deleteMetadata(id: string) {
   return request.delete(`/metadata/${id}`)
 }
 
-export function updateMetadataStatus(id: number, status: number) {
+export function updateMetadataStatus(id: string, status: number) {
   return request.put(`/metadata/${id}/status`, { status })
 }
 
-export function batchSaveItems(metadataId: number, data: {
+export function batchSaveItems(metadataId: string, data: {
   items: Partial<MetadataItemVO>[]
-  deletedItemIds?: number[]
+  deletedItemIds?: string[]
 }) {
   return request.post<any, { data: MetadataItemVO[] }>(
     `/metadata/${metadataId}/items/batch-save`, data

@@ -104,9 +104,9 @@ const tableData = ref<ServiceVO[]>([])
 const total = ref(0)
 const apps = ref<ApplicationSimpleVO[]>([])
 const msList = ref<MicroserviceSimpleVO[]>([])
-const appId = ref<number | undefined>(undefined)
+const appId = ref<string | undefined>(undefined)
 const query = reactive<SvcPageQuery>({ pageNum: 1, pageSize: 20, keyword: '',
-  microserviceId: route.query.microserviceId ? Number(route.query.microserviceId) : undefined })
+  microserviceId: route.query.microserviceId ? String(route.query.microserviceId) : undefined })
 
 async function loadData() {
   loading.value = true
@@ -124,7 +124,7 @@ function methodTag(m: string) {
 const dialogVisible = ref(false)
 const saving = ref(false)
 const formRef = ref<FormInstance>()
-const formAppId = ref<number | undefined>(undefined)
+const formAppId = ref<string | undefined>(undefined)
 const formMsList = ref<MicroserviceSimpleVO[]>([])
 const form = reactive<any>({ microserviceId: undefined, name: '', code: '', httpMethod: 'POST', servicePath: '', category: '', description: '' })
 const rules: FormRules = {

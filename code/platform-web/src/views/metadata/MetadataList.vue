@@ -88,7 +88,7 @@ const tableData = ref<MetadataVO[]>([])
 const total = ref(0)
 const apps = ref<ApplicationSimpleVO[]>([])
 const query = reactive<MetaPageQuery>({ pageNum: 1, pageSize: 20, keyword: '', status: undefined,
-  applicationId: route.query.applicationId ? Number(route.query.applicationId) : undefined })
+  applicationId: route.query.applicationId ? String(route.query.applicationId) : undefined })
 
 async function loadData() {
   loading.value = true
