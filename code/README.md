@@ -52,6 +52,7 @@ mysql -uroot -p < code/platform-server/src/main/resources/db/init.sql
 ```bash
 cd code/platform-server
 mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 后端启动后监听 `http://localhost:8080`，所有接口前缀 `/api/v1`。
