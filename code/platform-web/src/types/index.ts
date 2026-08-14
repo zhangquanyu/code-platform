@@ -62,6 +62,7 @@ export interface ModelFieldVO {
   fieldType: string
   length: number | null
   precision: number | null
+  scale: number | null
   isRequired: 0 | 1
   isPrimary: 0 | 1
   isUnique: 0 | 1

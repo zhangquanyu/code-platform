@@ -39,3 +39,6 @@ CREATE TABLE IF NOT EXISTS `dev_orch_param` (
 -- MySQL 8.0 不支持 ADD COLUMN IF NOT EXISTS，如果列已存在会报错，忽略即可
 ALTER TABLE `dev_orch_param` ADD COLUMN `create_by` BIGINT DEFAULT NULL AFTER `is_deleted`;
 ALTER TABLE `dev_orch_param` ADD COLUMN `update_by` BIGINT DEFAULT NULL AFTER `create_by`;
+
+-- 14. 补充 dev_model_field 表缺失的 scale 列（DECIMAL小数位数）
+ALTER TABLE `dev_model_field` ADD COLUMN `scale` INT DEFAULT NULL COMMENT '标度(DECIMAL小数位数)' AFTER `precision`;

@@ -36,8 +36,9 @@
         <el-table-column label="字段数" prop="fieldCount" width="90" />
         <el-table-column label="描述" prop="description" show-overflow-tooltip />
         <el-table-column label="创建时间" prop="createTime" width="170" />
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="primary" @click="$router.push(`/models/${row.id}`)">详情</el-button>
             <el-popconfirm title="确认删除？" @confirm="onDelete(row)">
               <template #reference><el-button link type="danger">删除</el-button></template>
@@ -51,21 +52,27 @@
         @size-change="loadData" @current-change="loadData" />
     </el-card>
 
-    <el-dialog v-model="dialogVisible" title="新建模型" width="520px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑模型' : '新建模型'" width="520px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="所属应用" prop="formAppId">
+        <el-form-item label="所属应用" prop="formAppId" v-if="!isEdit">
           <el-select v-model="formAppId" placeholder="请选择" filterable style="width: 100%" @change="onFormAppChange">
             <el-option v-for="a in apps" :key="a.id" :label="a.name" :value="a.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="所属微服务" prop="microserviceId">
+        <el-form-item label="所属应用" v-else>
+          <el-input :model-value="formAppName" disabled />
+        </el-form-item>
+        <el-form-item label="所属微服务" prop="microserviceId" v-if="!isEdit">
           <el-select v-model="form.microserviceId" placeholder="请先选择应用" filterable style="width: 100%" :disabled="!formAppId">
             <el-option v-for="m in formMsList" :key="m.id" :label="m.name" :value="m.id" />
           </el-select>
         </el-form-item>
+        <el-form-item label="所属微服务" v-else>
+          <el-input :model-value="formMsName" disabled />
+        </el-form-item>
         <el-form-item label="模型名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="模型编码" prop="code">
-          <el-input v-model="form.code" placeholder="字母开头，字母数字下划线" />
+          <el-input v-model="form.code" placeholder="字母开头，字母数字下划线" :disabled="isEdit" />
         </el-form-item>
         <el-form-item label="描述"><el-input v-model="form.description" type="textarea" /></el-form-item>
       </el-form>
@@ -81,7 +88,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { pageModels, createModel, deleteModel, type ModelPageQuery } from '@/api/model'
+import { pageModels, createModel, updateModel, deleteModel, type ModelPageQuery } from '@/api/model'
 import { listSimpleApplications } from '@/api/application'
 import { listMicroservicesByApp } from '@/api/microservice'
 import type { ApplicationSimpleVO, MicroserviceSimpleVO, ModelVO } from '@/types'
@@ -116,6 +123,10 @@ function onReset() { query.keyword = ''; query.microserviceId = undefined; appId
 
 const dialogVisible = ref(false)
 const saving = ref(false)
+const isEdit = ref(false)
+const editingId = ref<number | undefined>(undefined)
+const formAppName = ref('')
+const formMsName = ref('')
 const formRef = ref<FormInstance>()
 const formAppId = ref<number | undefined>(undefined)
 const formMsList = ref<MicroserviceSimpleVO[]>([])
@@ -131,6 +142,8 @@ async function onFormAppChange() {
   formMsList.value = formAppId.value ? await listMicroservicesByApp(formAppId.value) : []
 }
 function openCreate() {
+  isEdit.value = false
+  editingId.value = undefined
   Object.assign(form, { microserviceId: undefined, name: '', code: '', description: '' })
   // 如果搜索栏已选应用，预填到弹窗
   formAppId.value = appId.value
@@ -138,14 +151,35 @@ function openCreate() {
   if (query.microserviceId) form.microserviceId = query.microserviceId
   dialogVisible.value = true
 }
+function openEdit(row: ModelVO) {
+  isEdit.value = true
+  editingId.value = row.id
+  Object.assign(form, {
+    microserviceId: row.microserviceId,
+    name: row.name,
+    code: row.code,
+    description: row.description || ''
+  })
+  const app = apps.value.find(a => a.id === row.applicationId)
+  formAppName.value = app?.name || ''
+  formMsName.value = row.microserviceName || ''
+  dialogVisible.value = true
+}
 async function onSave() {
   await formRef.value?.validate()
   saving.value = true
   try {
-    const res = await createModel(form)
-    ElMessage.success('创建成功')
-    dialogVisible.value = false
-    router.push(`/models/${res.id}`)
+    if (isEdit.value && editingId.value) {
+      await updateModel(editingId.value, { name: form.name, description: form.description })
+      ElMessage.success('修改成功')
+      dialogVisible.value = false
+      loadData()
+    } else {
+      const res = await createModel(form)
+      ElMessage.success('创建成功')
+      dialogVisible.value = false
+      router.push(`/models/${res.id}`)
+    }
   } finally { saving.value = false }
 }
 async function onDelete(row: ModelVO) {

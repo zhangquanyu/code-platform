@@ -34,7 +34,17 @@
           </template>
         </el-table-column>
         <el-table-column label="长度" width="90">
-          <template #default="{ row }"><el-input-number v-model="row.length" size="small" :min="0" controls-position="right" style="width:80px" /></template>
+          <template #default="{ row }"><el-input-number v-model="row.length" size="small" :min="0" controls-position="right" style="width:80px" :disabled="row.fieldType === 'DECIMAL'" /></template>
+        </el-table-column>
+        <el-table-column label="精度" width="90">
+          <template #default="{ row }">
+            <el-input-number v-model="row.precision" size="small" :min="1" :max="65" controls-position="right" style="width:80px" :disabled="row.fieldType !== 'DECIMAL'" placeholder="总位数" />
+          </template>
+        </el-table-column>
+        <el-table-column label="标度" width="90">
+          <template #default="{ row }">
+            <el-input-number v-model="row.scale" size="small" :min="0" :max="30" controls-position="right" style="width:80px" :disabled="row.fieldType !== 'DECIMAL'" placeholder="小数位" />
+          </template>
         </el-table-column>
         <el-table-column label="必填" width="60">
           <template #default="{ row }"><el-switch v-model="row.isRequired" :active-value="1" :inactive-value="0" /></template>
@@ -121,11 +131,19 @@ async function load() {
 
 function onTypeChange(row: ModelFieldVO) {
   if (row.fieldType !== 'ENUM') { row.metadataId = null }
+  if (row.fieldType === 'DECIMAL') {
+    if (row.precision == null) row.precision = 10
+    if (row.scale == null) row.scale = 2
+    row.length = null
+  } else {
+    row.precision = null
+    row.scale = null
+  }
 }
 function onAddField() {
   fields.value.push({
     id: null, modelId: detail.model!.id, name: '', displayName: '', fieldType: 'TEXT',
-    length: null, precision: null, isRequired: 0, isPrimary: 0, isUnique: 0, isIndex: 0,
+    length: null, precision: null, scale: null, isRequired: 0, isPrimary: 0, isUnique: 0, isIndex: 0,
     defaultValue: null, metadataId: null, metadataName: null, sortOrder: fields.value.length, fieldComment: null
   })
 }

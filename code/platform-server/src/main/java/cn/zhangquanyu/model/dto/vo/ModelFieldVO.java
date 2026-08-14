@@ -12,6 +12,7 @@ public class ModelFieldVO {
     private String fieldType;
     private Integer length;
     private Integer precision;
+    private Integer scale;
     private Integer isRequired;
     private Integer isPrimary;
     private Integer isUnique;
